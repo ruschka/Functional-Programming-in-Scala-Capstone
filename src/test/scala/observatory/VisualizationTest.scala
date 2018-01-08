@@ -42,4 +42,15 @@ class VisualizationTest extends FunSuite with Checkers {
     assert(128 == Math.round(127.5))
   }
 
+  test("greatCircleDistance") {
+    val Prague = Location(50.0755381d, 14.4378005d)
+    val NewYork = Location(40.71448d, -74.00598)
+    assert(Math.abs(6572.67 - Visualization.greatCircleDistance(Prague, NewYork)) < 1)
+  }
+
+  test("radians") {
+    assert(Math.PI == Visualization.radians(180d))
+
+  }
+
 }

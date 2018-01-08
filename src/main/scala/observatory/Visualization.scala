@@ -7,6 +7,8 @@ import com.sksamuel.scrimage.{Image, Pixel}
   */
 object Visualization {
 
+  val EarthRadius = 6371d
+
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
     * @param location Location where to predict the temperature
@@ -14,6 +16,17 @@ object Visualization {
     */
   def predictTemperature(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature = {
     ???
+  }
+
+  def greatCircleDistance(loc1: Location, loc2: Location): Double = {
+    val delta = Math.acos(
+      Math.sin(radians(loc1.lat)) * Math.sin(radians(loc2.lat)) +
+        Math.cos(radians(loc1.lat)) * Math.cos(radians(loc2.lat)) * Math.cos(radians(loc1.lon) - radians(loc2.lon)))
+    EarthRadius * delta
+  }
+
+  def radians(degrees: Double): Double = {
+    degrees * (Math.PI / 180)
   }
 
   /**
