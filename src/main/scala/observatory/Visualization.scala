@@ -15,14 +15,30 @@ object Visualization {
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature = {
-    ???
+    val found = temperatures.find(t => t._1 == location)
+    found match {
+      case Some(temperature) => temperature._2
+      case None =>
+        val aggregated = temperatures.aggregate((0d, 0d))((acc, temperature) => {
+          val weight = weightingFunction(location, temperature._1)
+          (acc._1 + weight * temperature._2, acc._2 + weight)
+        }, (acc1, acc2) => (acc1._1 + acc2._1, acc1._2 + acc2._2))
+        aggregated._1 / aggregated._2
+    }
+  }
+
+  def weightingFunction(loc1: Location, loc2: Location): Double = {
+    1 / Math.pow(greatCircleDistance(loc1, loc2), 2)
   }
 
   def greatCircleDistance(loc1: Location, loc2: Location): Double = {
-    val delta = Math.acos(
-      Math.sin(radians(loc1.lat)) * Math.sin(radians(loc2.lat)) +
-        Math.cos(radians(loc1.lat)) * Math.cos(radians(loc2.lat)) * Math.cos(radians(loc1.lon) - radians(loc2.lon)))
-    EarthRadius * delta
+    if (loc1 == loc2) {
+      0
+    } else {
+      EarthRadius * Math.acos(
+        Math.sin(radians(loc1.lat)) * Math.sin(radians(loc2.lat)) +
+          Math.cos(radians(loc1.lat)) * Math.cos(radians(loc2.lat)) * Math.cos(radians(loc1.lon) - radians(loc2.lon)))
+    }
   }
 
   def radians(degrees: Double): Double = {
