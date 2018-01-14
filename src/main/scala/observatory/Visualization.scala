@@ -1,6 +1,12 @@
 package observatory
 
+import java.util.concurrent.{Executors, ForkJoinPool}
+
 import com.sksamuel.scrimage.{Image, Pixel}
+import org.apache.log4j.Logger
+
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 /**
   * 2nd milestone: basic visualization
@@ -9,26 +15,50 @@ object Visualization {
 
   val EarthRadius = 6371d
 
+  val logger = Logger.getLogger(this.getClass)
+
+  implicit val executionCtx: ExecutionContext = ExecutionContext.fromExecutor(new ForkJoinPool(Runtime.getRuntime.availableProcessors()))
+
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
     * @param location Location where to predict the temperature
     * @return The predicted temperature at `location`
     */
   def predictTemperature(temperatures: Iterable[(Location, Temperature)], location: Location): Temperature = {
-    val found = temperatures.find(t => t._1 == location)
-    found match {
-      case Some(temperature) => temperature._2
-      case None =>
-        val aggregated = temperatures.aggregate((0d, 0d))((acc, temperature) => {
-          val weight = weightingFunction(location, temperature._1)
-          (acc._1 + weight * temperature._2, acc._2 + weight)
-        }, (acc1, acc2) => (acc1._1 + acc2._1, acc1._2 + acc2._2))
-        aggregated._1 / aggregated._2
+
+    def idw(temperatures: Iterable[(Location, Temperature)], acc: (Double, Double)): Temperature = {
+      temperatures.headOption match {
+        case Some((temperatureLocation, temperature)) =>
+          val distance = greatCircleDistance(temperatureLocation, location)
+          if (distance < 1) {
+            temperature
+          } else {
+            val weight = weightingFunction(distance)
+            idw(temperatures.tail, (acc._1 + weight * temperature, acc._2 + weight))
+          }
+        case None => acc._1 / acc._2
+      }
     }
+    idw(temperatures, (0d, 0d))
   }
 
-  def weightingFunction(loc1: Location, loc2: Location): Double = {
-    1 / Math.pow(greatCircleDistance(loc1, loc2), 2)
+  /**
+  def predictTemperatureRDD(temperatures: RDD[(Location, Temperature)], location: Location): Temperature = {
+    val found = temperatures.filter(t => t._1 == location).collect().toSeq
+    if (found.nonEmpty) {
+      found(0)._2
+    } else {
+      val aggregated = temperatures.aggregate((0d, 0d))((acc, temperature) => {
+        val weight = weightingFunction(location, temperature._1)
+        (acc._1 + weight * temperature._2, acc._2 + weight)
+      }, (acc1, acc2) => (acc1._1 + acc2._1, acc1._2 + acc2._2))
+      aggregated._1 / aggregated._2
+    }
+  }
+    */
+
+  def weightingFunction(distance: Double): Double = {
+    1 / Math.pow(distance, 2)
   }
 
   def greatCircleDistance(loc1: Location, loc2: Location): Double = {
@@ -83,7 +113,24 @@ object Visualization {
     * @return A 360×180 image where each pixel shows the predicted temperature at its location
     */
   def visualize(temperatures: Iterable[(Location, Temperature)], colors: Iterable[(Temperature, Color)]): Image = {
-    ???
+    val width = 360
+    val height = 180
+    val pixels = new Array[Future[Pixel]](width * height)
+    for (y <- 0 until height) {
+      for (x <- 0 until width) {
+        pixels(x + y * 360) = Future {
+          val lat = 90 - y
+          val lon = x - 180
+          val temperature = predictTemperature(temperatures, Location(lat, lon))
+          val color = interpolateColor(colors, temperature)
+          logger.info(s"point $lat, $lon, temperature $temperature, color $color")
+          Pixel(color.red, color.green, color.blue, 255)
+        }
+      }
+    }
+    val fPixels = Future.sequence(pixels.toSeq)
+    val fImage = fPixels.map(pixels => Image(width, height, pixels.toArray))
+    Await.result(fImage, Duration.Inf)
   }
 
 }

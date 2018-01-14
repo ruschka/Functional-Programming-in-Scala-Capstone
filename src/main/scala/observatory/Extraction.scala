@@ -2,8 +2,6 @@ package observatory
 
 import java.time.{LocalDate, Month, MonthDay}
 
-import org.apache.log4j.{Level, Logger}
-import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 
 /**
@@ -11,13 +9,8 @@ import org.apache.spark.rdd.RDD
   */
 object Extraction {
 
-  lazy val conf: SparkConf = new SparkConf().setMaster("local").setAppName("observatory")
-  lazy val ctx: SparkContext = new SparkContext(conf)
-
   var stationsFilesMap: Map[String, RDD[(ObservatoryId, StationRow)]] = Map()
   var temperaturesFilesMap: Map[String, RDD[(ObservatoryId, TemperatureRow)]] = Map()
-
-  Logger.getLogger("org.apache.spark").setLevel(Level.WARN)
 
   /**
     * @param year             Year number
@@ -40,7 +33,7 @@ object Extraction {
     * @return A sequence containing, for each location, the average temperature over the year.
     */
   def locationYearlyAverageRecords(records: Iterable[(LocalDate, Location, Temperature)]): Iterable[(Location, Temperature)] = {
-    locationYearlyAverageRecordsRDD(ctx.makeRDD(records.toSeq)).collect().toIterable
+    locationYearlyAverageRecordsRDD(SparkCtx.ctx.makeRDD(records.toSeq)).collect().toIterable
   }
 
   def locationYearlyAverageRecordsRDD(records: RDD[(LocalDate, Location, Temperature)]): RDD[(Location, Temperature)] = {
@@ -51,7 +44,7 @@ object Extraction {
 
   private def stationsRDD(stationsFile: String): RDD[(ObservatoryId, StationRow)] = {
     if (!stationsFilesMap.contains(stationsFile)) {
-      stationsFilesMap = stationsFilesMap + (stationsFile -> filterStations(linesToStations(ctx.textFile(getResourcePath(stationsFile)))).cache())
+      stationsFilesMap = stationsFilesMap + (stationsFile -> filterStations(linesToStations(SparkCtx.ctx.textFile(getResourcePath(stationsFile)))).cache())
     }
     stationsFilesMap.getOrElse(stationsFile, throw new IllegalStateException(s"Stations RDD $stationsFile is missing."))
   }
@@ -80,7 +73,7 @@ object Extraction {
   private def temperaturesRDD(temperaturesFile: String): RDD[(ObservatoryId, TemperatureRow)] = {
     if (!temperaturesFilesMap.contains(temperaturesFile)) {
       // cached?
-      temperaturesFilesMap = temperaturesFilesMap + (temperaturesFile -> filterTemperatures(linesToTemperatures(ctx.textFile(getResourcePath(temperaturesFile)))))
+      temperaturesFilesMap = temperaturesFilesMap + (temperaturesFile -> filterTemperatures(linesToTemperatures(SparkCtx.ctx.textFile(getResourcePath(temperaturesFile)))))
     }
     temperaturesFilesMap.getOrElse(temperaturesFile, throw new IllegalStateException(s"Temperatures RDD $temperaturesFile is missing."))
   }

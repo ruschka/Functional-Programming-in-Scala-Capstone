@@ -1,6 +1,9 @@
 package observatory
 
 
+import java.io.File
+
+import com.sksamuel.scrimage.{Image, Pixel}
 import org.scalatest.FunSuite
 import org.scalatest.prop.Checkers
 
@@ -50,7 +53,14 @@ class VisualizationTest extends FunSuite with Checkers {
 
   test("radians") {
     assert(Math.PI == Visualization.radians(180d))
+  }
 
+  test("pictureSave") {
+    val pixels = new Array[Pixel](100)
+    for (i <- 0 to 99) {
+      pixels(i) = Pixel(255, 0, 0, 255)
+    }
+    Image(10, 10, pixels).output(new File("output/test.png"))
   }
 
 }
