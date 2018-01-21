@@ -17,7 +17,7 @@ object Visualization {
 
   val logger = Logger.getLogger(this.getClass)
 
-  implicit val executionCtx: ExecutionContext = ExecutionContext.fromExecutor(new ForkJoinPool(Runtime.getRuntime.availableProcessors()))
+  implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(new ForkJoinPool(Runtime.getRuntime.availableProcessors()))
 
   /**
     * @param temperatures Known temperatures: pairs containing a location and the temperature at this location
@@ -58,7 +58,7 @@ object Visualization {
     */
 
   def weightingFunction(distance: Double): Double = {
-    1 / Math.pow(distance, 2)
+    1 / Math.pow(distance, 5)
   }
 
   def greatCircleDistance(loc1: Location, loc2: Location): Double = {
@@ -118,12 +118,12 @@ object Visualization {
     val pixels = new Array[Future[Pixel]](width * height)
     for (y <- 0 until height) {
       for (x <- 0 until width) {
-        pixels(x + y * 360) = Future {
+        pixels(x + y * width) = Future {
           val lat = 90 - y
           val lon = x - 180
           val temperature = predictTemperature(temperatures, Location(lat, lon))
           val color = interpolateColor(colors, temperature)
-          logger.info(s"point $lat, $lon, temperature $temperature, color $color")
+          //logger.info(s"point $lat, $lon, temperature $temperature, color $color")
           Pixel(color.red, color.green, color.blue, 255)
         }
       }
