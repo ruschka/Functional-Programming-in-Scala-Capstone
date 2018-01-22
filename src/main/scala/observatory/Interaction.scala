@@ -15,7 +15,9 @@ object Interaction {
 
   val logger = Logger.getLogger(this.getClass)
 
-  implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(new ForkJoinPool(Runtime.getRuntime.availableProcessors()))
+  //val processors = Runtime.getRuntime.availableProcessors()
+  val processors = 2
+  implicit val ec: ExecutionContext = ExecutionContext.fromExecutor(new ForkJoinPool(processors))
 
   /**
     * @param tile Tile coordinates
@@ -44,7 +46,6 @@ object Interaction {
       for (x <- 0 until width) {
         subTiles(x + y * width) = Future {
           val subTile = Tile(width * tile.x + x, height * tile.y + y, zoom + tile.zoom)
-          if (x == 0) logger.info(subTile)
           val location = subTile.toLocation
           val temperature = Visualization.predictTemperature(temperatures, location)
           val color = Visualization.interpolateColor(colors, temperature)
