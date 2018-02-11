@@ -9,7 +9,34 @@ import scala.math._
   * @param lat Degrees of latitude, -90 ≤ lat ≤ 90
   * @param lon Degrees of longitude, -180 ≤ lon ≤ 180
   */
-case class Location(lat: Double, lon: Double)
+case class Location(lat: Double, lon: Double) {
+
+  private val latFloor = lat.floor.toInt
+  private val latCeil = lat.ceil.toInt
+  private val lonFloor = lon.floor.toInt
+  private val lonCeil = lon.ceil.toInt
+
+  def toCellPoint: CellPoint = {
+    CellPoint(lat - latFloor, lon - lonFloor)
+  }
+
+  def toTopLeft: GridLocation = {
+    GridLocation(latFloor, lonFloor)
+  }
+
+  def toTopRight: GridLocation = {
+    GridLocation(latCeil, lonFloor)
+  }
+
+  def toBottomLeft: GridLocation = {
+    GridLocation(latFloor, lonCeil)
+  }
+
+  def toBottomRight: GridLocation = {
+    GridLocation(latCeil, lonCeil)
+  }
+
+}
 
 /**
   * Introduced in Week 3. Represents a tiled web map tile.

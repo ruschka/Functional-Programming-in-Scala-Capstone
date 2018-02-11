@@ -9,6 +9,6 @@ class CapstoneSuite
     //with VisualizationTest
     //with InteractionTest
     with ManipulationTest
-    with Visualization2Test
-    with Interaction2Test
+    //with Visualization2Test
+    //with Interaction2Test
 
